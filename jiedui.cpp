@@ -39,6 +39,7 @@ typedef struct node {
 //end definition
 
 void init_suffix(Node& suffix);
+//考虑是否需要单独初始化其他变量*******
 
 //definition of stack
 
@@ -130,6 +131,58 @@ int cal(int a, int b, char ch) {
 	case '^':return pow(a, b);//********
 	}
 }//end cal
+
+int frac_divide(Node &suffix_result) {
+	//
+	int temp = 0;
+	int para = 0;
+
+	if (suffix_result.frac[2] == 0) {
+		return -10000;//divide 0 error
+	}
+	if (suffix_result.frac[2] < suffix_result.frac[3]) {
+		temp = gcd(suffix_result.frac[2], suffix_result.frac[3]);
+		if (temp != 1) {
+			suffix_result.frac[2] /= temp;
+			suffix_result.frac[3] /= temp;
+		}//if has a gcd larger than 1
+		suffix_result.flag = 2;
+
+		return 2;
+	}//end if '/' get frac<1
+	else if (suffix_result.frac[2] == suffix_result.frac[3]) {
+		suffix_result.num = 1+suffix_result.frac[1];
+		suffix_result.flag = 0;
+		return 1;
+	}//end else if '/' get 1
+	else {
+		para = suffix_result.frac[2] % suffix_result.frac[3];
+		if (para == 0) {
+			//can get a intergar
+			suffix_result.num = suffix_result.frac[1] + suffix_result.frac[2] / suffix_result.frac[3];
+			suffix_result.flag = 0;
+			return 1;
+		}//end if is a >1 integar
+		else {
+			temp = suffix_result.frac[2] - para;
+			temp = temp / suffix_result.frac[3];
+			suffix_result.frac[1] += temp;
+			suffix_result.frac[2] = suffix_result.frac[2] - temp*suffix_result.frac[3];
+
+			temp = gcd(suffix_result.frac[2], suffix_result.frac[3]);
+			if (temp != 1) {
+				suffix_result.frac[2] /= temp;
+				suffix_result.frac[3] /= temp;
+			}//if has a gcd larger than 1
+		
+			suffix_result.flag = 2;
+			return 1;
+
+		}//end else is a >1 fraction
+
+	}//end else '/' get >1 num&frac
+}
+
 int cal(Node suffix_left, Node suffix_right, Node &suffix_result,char op) {
 	//cal:with para list having two node,and one result node
 	//the value return as -1,0,1 meanging result is -,0,+ 
@@ -168,6 +221,11 @@ int cal(Node suffix_left, Node suffix_right, Node &suffix_result,char op) {
 			if (suffix_right.num == 0) {
 				return -10000;//divide 0 error
 			}
+			suffix_result.frac[1] = 0;
+			suffix_result.frac[2] = suffix_left.num;
+			suffix_result.frac[3] = suffix_right.num;
+			
+
 			if (suffix_left.num < suffix_right.num) {
 				temp = gcd(suffix_left.num, suffix_right.num);
 				if (temp != 1) {
@@ -208,7 +266,7 @@ int cal(Node suffix_left, Node suffix_right, Node &suffix_result,char op) {
 					suffix_result.frac[2] = suffix_left.num;
 					suffix_result.frac[3] = suffix_right.num;
 					suffix_result.flag = 2;
-					suffix_result.flag = 0;
+					
 					return 1;
 
 				}//end else is a >1 fraction
@@ -218,7 +276,80 @@ int cal(Node suffix_left, Node suffix_right, Node &suffix_result,char op) {
 
 	}//end if two integar
 	else if (flag_l == 2 && flag_r == 0|| flag_l == 0 && flag_r == 2|| flag_l == 2 && flag_r == 2) {
+		//if there is a frac&num or frac&frac
+		
+		if (op == '+') {
 
+			if (flag_l == 2 && flag_r == 0 ) {
+				//if there is a frac | num
+				suffix_result.frac[1] = suffix_left.frac[1]+suffix_right.num;
+				suffix_result.frac[2] = suffix_left.frac[2];
+				suffix_result.frac[3] = suffix_left.frac[3];
+				suffix_result.flag = 2;
+			}//end f|n +
+			else if (flag_l == 0 && flag_r == 2) {
+				//if there is a num | frac
+				suffix_result.frac[1] = suffix_right.frac[1] + suffix_left.num;
+				suffix_result.frac[2] = suffix_right.frac[2];
+				suffix_result.frac[3] = suffix_right.frac[3];
+				suffix_result.flag = 2;
+			}//end n|f +
+			else if (flag_l == 2 && flag_r == 2) {
+				//if there is a frac | frac
+				suffix_result.frac[1] = suffix_right.frac[1] + suffix_left.frac[1];
+				suffix_result.frac[2] = suffix_right.frac[2] * suffix_left.frac[3] + 
+					suffix_left.frac[2] * suffix_right.frac[3];
+
+				suffix_result.frac[3] = suffix_right.frac[3] * suffix_left.frac[3];
+				suffix_result.flag = 2;
+				temp = gcd(suffix_result.frac[2], suffix_result.frac[3]);
+				if (temp != 1) {
+					suffix_result.frac[2] /= temp;
+					suffix_result.frac[3] /= temp;
+				}//end if gcd > 1
+			}//end if f|f +
+		}//end if +
+
+		else if (op == '*') {
+			
+			if (flag_l == 2 && flag_r == 0) {
+				//if there is a frac | num
+				suffix_result.frac[1] = suffix_left.frac[1] * suffix_right.num;
+				suffix_result.frac[2] = suffix_left.frac[2] * suffix_right.num;
+				suffix_result.frac[3] = suffix_left.frac[3];
+				temp = gcd(suffix_result.frac[2], suffix_result.frac[3]);
+				if (temp != 1) {
+					suffix_result.frac[2] /= temp;
+					suffix_result.frac[3] /= temp;
+				}//end if gcd > 1
+				suffix_result.flag = 2;
+			}//end f|n +
+			else if (flag_l == 0 && flag_r == 2) {
+				//if there is a num | frac
+				suffix_result.frac[1] = suffix_right.frac[1] + suffix_left.num;
+				suffix_result.frac[2] = suffix_right.frac[2];
+				suffix_result.frac[3] = suffix_right.frac[3];
+				suffix_result.flag = 2;
+			}//end n|f +
+			else if (flag_l == 2 && flag_r == 2) {
+				//if there is a frac | frac
+				suffix_result.frac[1] = suffix_right.frac[1] + suffix_left.frac[1];
+				suffix_result.frac[2] = suffix_right.frac[2] * suffix_left.frac[3] +
+					suffix_left.frac[2] * suffix_right.frac[3];
+
+				suffix_result.frac[3] = suffix_right.frac[3] * suffix_left.frac[3];
+				suffix_result.flag = 2;
+				temp = gcd(suffix_result.frac[2], suffix_result.frac[3]);
+				if (temp != 1) {
+					suffix_result.frac[2] /= temp;
+					suffix_result.frac[3] /= temp;
+				}//end if gcd > 1
+			}//end if f|f +
+
+
+		}
+
+		
 
 	}
 
