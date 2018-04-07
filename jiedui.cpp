@@ -21,6 +21,9 @@
 #define NUMSIZE 50
 #define STACKSIZE 50
 #define GEN 100
+#define Frac_Num 1
+#define Num 0
+
 
 using namespace std;
 
@@ -94,6 +97,24 @@ bool Nstackempty(Nsqstack s) {
 
  //end Initialization of stack
 
+int gcd(int a, int b) {
+	int i = 0, j = 0, k = 0;
+	int result = 0;
+	if (a < b) {
+		i = a;
+		a = b;
+		b = i;
+	}//end if
+	if (a%b == 0)return b;
+	result = a%b;
+	while (result != 0) {
+		a = b;
+		b = result;
+		result = a%b;
+	}//end while
+	return b;
+
+}//end gcd
 
 
 int isoperator(char ch) {
@@ -147,13 +168,18 @@ int frac_divide(Node &suffix_result) {
 			suffix_result.frac[3] /= temp;
 		}//if has a gcd larger than 1
 		suffix_result.flag = 2;
+		suffix_result.num = 0;
+
 
 		return 2;
 	}//end if '/' get frac<1
 	else if (suffix_result.frac[2] == suffix_result.frac[3]) {
 		suffix_result.num = 1+suffix_result.frac[1];
 		suffix_result.flag = 0;
-		return 1;
+		for (int i = 0; i <= 3; i++) {
+			suffix_result.frac[i] = 0;
+		}//end for
+		return 0;
 	}//end else if '/' get 1
 	else {
 		para = suffix_result.frac[2] % suffix_result.frac[3];
@@ -161,7 +187,10 @@ int frac_divide(Node &suffix_result) {
 			//can get a intergar
 			suffix_result.num = suffix_result.frac[1] + suffix_result.frac[2] / suffix_result.frac[3];
 			suffix_result.flag = 0;
-			return 1;
+			for (int i = 0; i <= 3; i++) {
+				suffix_result.frac[i] = 0;
+			}//end for
+			return 0;
 		}//end if is a >1 integar
 		else {
 			temp = suffix_result.frac[2] - para;
@@ -176,7 +205,8 @@ int frac_divide(Node &suffix_result) {
 			}//if has a gcd larger than 1
 		
 			suffix_result.flag = 2;
-			return 1;
+			suffix_result.num = 0;
+			return 2;
 
 		}//end else is a >1 fraction
 
@@ -193,13 +223,19 @@ int cal(Node suffix_left, Node suffix_right, Node &suffix_result,char op) {
 	if (flag_l == 0 && flag_r == 0) {
 		if (op == '+' ) {
 			suffix_result.num = suffix_left.num + suffix_right.num;
-			suffix_result.flag = 0;
-			return 1;
+			suffix_result.flag = 0; 
+			if (suffix_result.num == 0)
+				return 0;
+			else
+				return 1;
 		}//end if '+'
 		else if (op == '*') {
 			suffix_result.num = suffix_left.num * suffix_right.num;
 			suffix_result.flag = 0;
-			return 1;
+			if (suffix_result.num == 0)
+				return 0;
+			else
+				return 1;
 		}//end else if '*'
 		else if (op == '-') {
 			if (suffix_left.num < suffix_right.num) {
@@ -224,54 +260,28 @@ int cal(Node suffix_left, Node suffix_right, Node &suffix_result,char op) {
 			suffix_result.frac[1] = 0;
 			suffix_result.frac[2] = suffix_left.num;
 			suffix_result.frac[3] = suffix_right.num;
+			temp=frac_divide(suffix_result);
+			if (temp == -10000) {
+				return -10000;
+			}//end divide 0 error
+			else if (temp == 2) {
+				if (suffix_result.frac[1] == 0) {
+					if (suffix_result.frac[2] == 0) {
+						return 0;
+					}//end if equal to 0
+					else return 1;
+				}//end if frac[1]==0
+				else return 1;
+
+			}
+			else if (temp == 0) {
+				if (suffix_result.num == 0)
+					return 0;
+				else
+					return 1;
+			}
 			
-
-			if (suffix_left.num < suffix_right.num) {
-				temp = gcd(suffix_left.num, suffix_right.num);
-				if (temp != 1) {
-					suffix_left.num  /= temp;
-					suffix_right.num /= temp;
-				}//if has a gcd larger than 1
-				suffix_result.frac[1] = 0;
-				suffix_result.frac[2] = suffix_left.num;
-				suffix_result.frac[3] = suffix_right.num;
-				suffix_result.flag = 2;
-
-				return 2;
-			}//end if '/' get frac<1
-			else if (suffix_left.num == suffix_right.num) {
-				suffix_result.num = 1;
-				suffix_result.flag = 0;
-				return 1;
-			}//end else if '/' get 1
-			else {
-				para = suffix_left.num % suffix_right.num;
-				if (para == 0) {
-					//can get a intergar
-					suffix_result.num = suffix_left.num / suffix_right.num;
-					suffix_result.flag = 0;
-					return 1;
-				}//end if is a >1 integar
-				else {
-					temp = suffix_left.num - para;
-					temp = temp / suffix_right.num;
-					suffix_result.frac[1] = temp;
-					suffix_left.num = suffix_left.num - temp*suffix_right.num;
-					
-					temp = gcd(suffix_left.num, suffix_right.num);
-					if (temp != 1) {
-						suffix_left.num /= temp;
-						suffix_right.num /= temp;
-					}//if has a gcd larger than 1
-					suffix_result.frac[2] = suffix_left.num;
-					suffix_result.frac[3] = suffix_right.num;
-					suffix_result.flag = 2;
-					
-					return 1;
-
-				}//end else is a >1 fraction
-				
-			}//end else '/' get >1 num&frac
+			
 		}//end else if '/'
 
 	}//end if two integar
@@ -302,12 +312,10 @@ int cal(Node suffix_left, Node suffix_right, Node &suffix_result,char op) {
 
 				suffix_result.frac[3] = suffix_right.frac[3] * suffix_left.frac[3];
 				suffix_result.flag = 2;
-				temp = gcd(suffix_result.frac[2], suffix_result.frac[3]);
-				if (temp != 1) {
-					suffix_result.frac[2] /= temp;
-					suffix_result.frac[3] /= temp;
-				}//end if gcd > 1
+				
 			}//end if f|f +
+			frac_divide(suffix_result);
+			return 1;
 		}//end if +
 
 		else if (op == '*') {
@@ -317,41 +325,124 @@ int cal(Node suffix_left, Node suffix_right, Node &suffix_result,char op) {
 				suffix_result.frac[1] = suffix_left.frac[1] * suffix_right.num;
 				suffix_result.frac[2] = suffix_left.frac[2] * suffix_right.num;
 				suffix_result.frac[3] = suffix_left.frac[3];
-				temp = gcd(suffix_result.frac[2], suffix_result.frac[3]);
-				if (temp != 1) {
-					suffix_result.frac[2] /= temp;
-					suffix_result.frac[3] /= temp;
-				}//end if gcd > 1
 				suffix_result.flag = 2;
-			}//end f|n +
+			}//end f|n *
 			else if (flag_l == 0 && flag_r == 2) {
 				//if there is a num | frac
-				suffix_result.frac[1] = suffix_right.frac[1] + suffix_left.num;
-				suffix_result.frac[2] = suffix_right.frac[2];
+				suffix_result.frac[1] = suffix_right.frac[1] * suffix_left.num;
+				suffix_result.frac[2] = suffix_right.frac[2] * suffix_left.num;
 				suffix_result.frac[3] = suffix_right.frac[3];
 				suffix_result.flag = 2;
-			}//end n|f +
+			}//end n|f *
 			else if (flag_l == 2 && flag_r == 2) {
 				//if there is a frac | frac
-				suffix_result.frac[1] = suffix_right.frac[1] + suffix_left.frac[1];
-				suffix_result.frac[2] = suffix_right.frac[2] * suffix_left.frac[3] +
-					suffix_left.frac[2] * suffix_right.frac[3];
+				suffix_result.frac[1] = suffix_right.frac[1] * suffix_left.frac[1];
+
+				suffix_result.frac[2] = suffix_right.frac[2] * suffix_left.frac[2] +
+					suffix_left.frac[2] * suffix_right.frac[1] * suffix_right.frac[3] +
+					suffix_right.frac[2] * suffix_left.frac[1] * suffix_left.frac[3];
 
 				suffix_result.frac[3] = suffix_right.frac[3] * suffix_left.frac[3];
 				suffix_result.flag = 2;
-				temp = gcd(suffix_result.frac[2], suffix_result.frac[3]);
-				if (temp != 1) {
-					suffix_result.frac[2] /= temp;
-					suffix_result.frac[3] /= temp;
-				}//end if gcd > 1
-			}//end if f|f +
+				
+			}//end if f|f *
+			frac_divide(suffix_result);
+			return 1;
+		}//end if f|n、n|f、f|f *
+		else if (op == '-') {
+			if (flag_l == 2 && flag_r == 0) {
+				//if there is a frac | num
+				suffix_result.frac[1] = suffix_left.frac[1] - suffix_right.num;
+				
+				suffix_result.frac[2] = suffix_left.frac[2];
+				suffix_result.frac[3] = suffix_left.frac[3];
+				suffix_result.flag = 2;
+			}//end f|n -
+			else if (flag_l == 0 && flag_r == 2) {
+				//if there is a num | frac  1
+				suffix_result.frac[1] = suffix_left.num - suffix_right.frac[1];
+				suffix_result.frac[2] = suffix_right.frac[2];
+				suffix_result.frac[3] = suffix_right.frac[3];
+				suffix_result.flag = 2;
+			}//end n|f -
+			else if (flag_l == 2 && flag_r == 2) {
+				//if there is a frac | frac  
+				suffix_result.frac[1] = suffix_left.frac[1] - suffix_right.frac[1];
+				suffix_result.frac[2] =
+					suffix_left.frac[2] * suffix_right.frac[3] - suffix_right.frac[2] * suffix_left.frac[3];
 
+				suffix_result.frac[3] = suffix_right.frac[3] * suffix_left.frac[3];
+				suffix_result.flag = 2;
 
-		}
+			}//end if f|f -
 
-		
+			if (suffix_result.frac[1] < 0) {
+				return -1;
+			}//if frac is <0
+			else if (suffix_result.frac[1] == 0) {
+				if (suffix_result.frac[2] < 0) {
+					return -1;
+				}//if frac[1]==0, and frac[2]<0
+				else if (suffix_result.frac[2] == 0) {
+					suffix_result.num = 0;
+					suffix_result.flag = 0;
+					for (int i = 0; i <= 3; i++) {
+						suffix_result.frac[i] = 0;
+					}//end for
+					return 0;
+				}// if frac[1]==0, and frac[2]==0
+				
+			}//if frac[1]==0 
+			frac_divide(suffix_result);
+			return 1;
+		}//if '-'
+		else if (op == '/') {
+			if (suffix_right.num == 0) return -10000;//divide 0 error
 
-	}
+			if (flag_l == 2 && flag_r == 0) {
+				//if there is a frac | num
+				suffix_left.frac[3] *= suffix_right.num;
+				suffix_right.frac[1] = 0;
+				suffix_right.frac[2] = suffix_left.frac[1];
+				suffix_right.frac[3] = suffix_right.num;
+				suffix_right.num = 0;
+				suffix_right.flag = 2;
+				suffix_left.frac[1] = 0;
+				cal(suffix_left, suffix_right, suffix_result, '+');
+				return 1;
+
+			}//end f|n /
+			else if (flag_l == 0 && flag_r == 2) {
+				//if there is a num | frac
+				if (suffix_left.num == 0) {
+					suffix_result.num = 0;
+					suffix_result.flag = 0;
+					return 0;//get 0
+				}//end get 0
+
+				suffix_result.frac[1] = 0;
+				suffix_result.frac[2] = suffix_right.frac[3] * suffix_left.num;
+				suffix_result.frac[3] = suffix_right.frac[1] * suffix_right.frac[3] + suffix_right.frac[2];
+				suffix_result.flag = 2;
+				frac_divide(suffix_result);
+				return 1;
+			}//end n|f /
+			else if (flag_l == 2 && flag_r == 2) {
+				//if there is a frac | frac
+				suffix_result.frac[1] = 0;
+
+				suffix_result.frac[2] = suffix_right.frac[3] * (suffix_left.frac[3] *
+					suffix_left.frac[1] + suffix_left.frac[2]);
+
+				suffix_result.frac[3] = suffix_left.frac[3] * (suffix_right.frac[3] *
+					suffix_right.frac[1] + suffix_right.frac[2]);
+				suffix_result.flag = 2;
+				frac_divide(suffix_result);
+				return 1;
+			}//end if f|f *
+
+		}//end f|n、n|f、f|f '/'
+	}//end f|n、n|f、f|f
 
 
 }//end cal with Node
@@ -371,27 +462,6 @@ void getf(char *&p, char *q) {
 
 	*temp = '\0';
 }//end getf
-
-
-
-int gcd(int a, int b) {
-	int i = 0, j = 0, k = 0;
-	int result = 0;
-	if (a < b) {
-		i = a;
-		a = b;
-		b = i;
-	}//end if
-	if (a%b == 0)return b;
-	result = a%b;
-	while (result != 0) {
-		a = b;
-		b = result;
-		result = a%b;
-	}//end while
-	return b;
-
-}//end gcd
 
 
 
@@ -683,7 +753,7 @@ void node_out_file(fstream filename, Node suffix) {
 
 
 
-int calculate(NNode suffix,int symbol) {
+int calculate(NNode suffix,int symbol,Node& suffix_result) {
 	//calculate the suffix
 	//symbol decides the type of calculation
 	//未考虑分数，小数，真分数，返回整数
@@ -700,7 +770,7 @@ int calculate(NNode suffix,int symbol) {
 	}
 	else return -10000;
 
-	Node suffix_left, suffix_right, suffix_result;
+	Node suffix_left, suffix_right;
 	init_suffix(suffix_left);
 	init_suffix(suffix_right);
 	init_suffix(suffix_result);
@@ -716,6 +786,7 @@ int calculate(NNode suffix,int symbol) {
 	case 0:
 		//all the num is integar
 		while (i <= length) {
+			init_suffix(suffix_result);
 			if (suffix[i].flag == 0) {
 				//get a num
 				Npush(s, suffix[i]);
@@ -745,11 +816,36 @@ int calculate(NNode suffix,int symbol) {
 		//end case 0
 	case 1:
 		//the num includes fracs&integars
+		while (i <= length) {
+			init_suffix(suffix_result);
+			if (suffix[i].flag == 0||suffix[i].flag == 2) {
+				//get a num
+				Npush(s, suffix[i]);
+				i++;
+			}//end if
 
+			else if (suffix[i].flag == 1) {
+				//get a operator
+				Npop(s, suffix_right);
+				
+				Npop(s, suffix_left);
+				
 
+				op = suffix[i].c;
+				result = cal(suffix_left, suffix_right, suffix_result, op);
+				if (result == -10000) return -10000;//error
+				else if (result == -1) return -1;//get <0
+				Npush(s, suffix_result);
+				i++;
+			}//end else if
 
+		}//end while
 
+		Npop(s, suffix_result);
+		return 1;
 		break;
+		//end case 1
+
 	case 2:
 
 		break;
@@ -764,26 +860,28 @@ int main()
 {
 	Nsqstack s;
 	Ninitstack(s);
-	Node suffixq,suffix1;
+	/*Node suffixq,suffix1;
 	init_suffix(suffixq);
 	init_suffix(suffix1);
 	set_suffix(suffixq, 1, 10, 2, "+-*");
 	Npush(s, suffixq);
 	Ngettop(s, suffix1);
 	cout << suffix1.frac[1] << "`" << suffix1.frac[2] <<"/" << suffix1.frac[3] << endl;
-	cout << suffixq.frac[1] << "`" << suffixq.frac[2] <<"/" << suffixq.frac[3] << endl;
+	cout << suffixq.frac[1] << "`" << suffixq.frac[2] <<"/" << suffixq.frac[3] << endl;*/
 	
 	
 	
 	
 	NNode suffix;
+	Node suffix_result;
 	int i = 0;
 	int key = 0;//key is the result of suffix
 	string dist = "C:/Users/38084/Documents/Visual Studio 2015/Projects/jiedui/jiedui/result.txt";
 	string dist1 = "C:/Users/38084/Documents/Visual Studio 2015/Projects/jiedui/jiedui/key.txt";
 	
 	srand((unsigned)time(NULL));
-	char* oper = "+-*";
+	char* oper = "+-*/";
+	init_suffix(suffix_result);
 	for (i = 0; i < NUMSIZE; i++) {
 		init_suffix(suffix[i]);
 	}//end for i
@@ -791,12 +889,30 @@ int main()
 	fstream ofn_key(dist1, ios::out);
 
 	for (int j = 0; j < 100; j++) {
-		suffix_generator(suffix, oper,0);
+		suffix_generator(suffix, oper,Frac_Num);
 		ofn << j + 1 << "	";
-		//key=calculate(suffix);
-		//ofn_key << j + 1 << "	" << key << endl;
+		key = calculate(suffix, Frac_Num, suffix_result);
+		if (key == -10000) {
+			ofn_key << key << endl;
+			cout << j + 1 << "	" << key << endl;
+		}
+		else if (key == -1) {
+			ofn_key << key << endl;
+			cout << j + 1 << "	" << key << endl;
+		}
+		else {
+			if (suffix_result.flag == 2) {
+				ofn << suffix_result.frac[1] << '`' << suffix_result.frac[2] << '/' << suffix_result.frac[3] << ' ';
+				cout << suffix_result.frac[1] << '`' << suffix_result.frac[2] << '/' << suffix_result.frac[3] << ' ';
+			}
+			else if (suffix_result.flag == 0) {
+				ofn << suffix_result.num << ' ';
+				cout << suffix_result.num << ' ';
+			}
+		}
+		
 		for (i = 1; i <= suffix[0].num; i++) {
-			if (suffix[i].flag == -1) break;
+			if (suffix[i].flag == -1) break;//****************没用上。。。
 			else if (suffix[i].flag == 0) {
 
 				ofn << suffix[i].num << ' ';
