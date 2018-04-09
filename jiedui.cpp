@@ -7,7 +7,7 @@
 #include <cstdlib>
 #include <ctime>
 
-
+#include <stack>
 #include <stdio.h>
 #include <stdlib.h>
 #include <fstream>
@@ -663,8 +663,8 @@ void suffix_generator(NNode &suffix,char* oper,int symbol) {
 	suffix[0].flag = 3;    //3 ************* 3 means begin
 	suffix[0].num = length;//store the length
 	//end initialization
-	temp = string1.find('/');
-	if (symbol==0 && temp) {
+	temp = string1.find('/');  
+	if (symbol==0 && temp>0) {//bool 型的狗逼错！！！！！
 		symbol = 3;
 		char oper1[10];
 		for (i = 0, j = 0; i < len_oper; i++) {
@@ -788,16 +788,20 @@ void suffix_generator(NNode &suffix,char* oper,int symbol) {
 
 		while (count_num < (1 + (length - 1) / 2)) {
 			if (srand_generator(10, 20, 15)) {
-				temp = random(inf, int(floor(sqrt(sup))));
-				temp1 = random(inf, int(floor(sqrt(sup))));
-				suffix[i].num = temp1*temp;
-				suffix[i++].flag = 0;
-				suffix[i].num = temp;
-				suffix[i++].flag = 0;
-				suffix[i].c = '/';
-				suffix[i++].flag = 1;
-				count_num += 2;
-				count_oper++;
+				if (count_num <= ((length - 1) / 2 - 1)) {
+					temp = random(inf, int(floor(sqrt(sup))));
+					temp1 = random(inf, int(floor(sqrt(sup))));
+					suffix[i].num = temp1*temp;
+					suffix[i++].flag = 0;
+					suffix[i].num = temp;
+					suffix[i++].flag = 0;
+					suffix[i].c = '/';
+					suffix[i++].flag = 1;
+					count_num += 2;
+					count_oper++;
+
+				}//if no out of range
+				else continue;
 				
 			}//end if
 			else {
@@ -969,6 +973,94 @@ int calculate(NNode suffix,int symbol,Node& suffix_result) {
 }//end calculate ,return int*********
 
 
+void output(string Expression, int key, int NUM) {
+	string dist = "D://result.txt";
+	string dist1 = "D://key.txt";
+	fstream ofn(dist, ios::app);
+	fstream ofn_key(dist1, ios::app);
+	ofn << NUM + 1 << ". " << Expression << " = " << endl;
+	ofn_key << NUM + 1 << ". " << key << endl;
+}//end output
+
+string needbracket(string a, char c) {
+	//suffix get char by char 
+	if (c == '+' || c == '-') return a;
+	int len = a.length();
+	if (len < 3) return a;
+	int flag = 0;
+	for (int i = 0; i < len; i++) {
+		if (a[i] == '+' || a[i] == '-') flag = 1;
+		if (a[i] == ')') flag = 0;
+	}
+	if (flag == 1) {
+		string c = "(";
+		c += a;
+		c += ")";
+		return c;
+	}
+	else return a;
+}//end needbracket
+
+void getnormalsuffix(NNode &suffix, int key, int NUM) {
+
+	stack<string> Expression;
+	string a;
+	string b;
+	char lastop = 0;
+	int flag = 0;
+	for (int i = 1; i <= suffix[0].num; i++) {
+		// if is a num/frac then change to string else change to mid
+		if (suffix[i].flag == -1) break;
+		else if (suffix[i].flag == 0) {
+			Expression.push(to_string(suffix[i].num));
+			flag++;
+			cout << suffix[i].num << ' ';
+		}//end elseif
+		else if (suffix[i].flag == 2) {
+			cout << suffix[i].frac[1] << '`' << suffix[i].frac[2] << '/' << suffix[i].frac[3] << ' ';
+			string c;
+			if (suffix[i].frac[1] != 0) {
+				c += to_string(suffix[i].frac[1]);
+				c += '`';
+			}//end if
+			c += to_string(suffix[i].frac[2]);
+			c += '/';
+			c += to_string(suffix[i].frac[3]);
+			Expression.push(c);
+			flag++;
+		}//end elseif
+		else {
+			a = Expression.top();
+			Expression.pop();
+			b = Expression.top();
+			Expression.pop();
+
+			if (flag == 0) {
+				a = needbracket(a, suffix[i].c);
+				b = needbracket(b, suffix[i].c);
+			}//end if
+			else {
+				if (flag == 1) {
+					b = needbracket(b, suffix[i].c);
+				}//end else
+			}//end else	
+			b += ' ';
+			b += suffix[i].c;
+			b += ' ';
+			b += a;
+			Expression.push(b);
+			lastop = suffix[i].c;
+			cout << suffix[i].c << ' ';
+			flag = 0;
+		}//end else
+
+	}//end for
+	a = Expression.top();
+	output(a, key, NUM);
+	cout << endl << a << "    " << key << endl;
+
+}//end getnormalsuffix
+
 
 int main()
 {
@@ -982,49 +1074,54 @@ int main()
 	Ngettop(s, suffix1);
 	cout << suffix1.frac[1] << "`" << suffix1.frac[2] <<"/" << suffix1.frac[3] << endl;
 	cout << suffixq.frac[1] << "`" << suffixq.frac[2] <<"/" << suffixq.frac[3] << endl;*/
-	
+	//testing stack
 	
 	
 	
 	NNode suffix;
 	Node suffix_result;
 	int i = 0;
-	int key = 0;//key is the result of suffix
+	int key = 0;//key is the result of suffix ******* change to node
 	string dist = "C:/Users/38084/Documents/Visual Studio 2015/Projects/jiedui/jiedui/result.txt";
 	string dist1 = "C:/Users/38084/Documents/Visual Studio 2015/Projects/jiedui/jiedui/key.txt";
 	
 	srand((unsigned)time(NULL));
-	char* oper = "+-*/";
+	char* oper = "+-*";// ********   change to get input  
 	init_suffix(suffix_result);
 	for (i = 0; i < NUMSIZE; i++) {
 		init_suffix(suffix[i]);
 	}//end for i
 	fstream ofn(dist,ios::out);
-	fstream ofn_key(dist1, ios::out);
+	fstream ofn_key(dist1, ios::out);// change to output and change api with path 
 
-	for (int j = 0; j < 1000; j++) {
+	for (int j = 0; j < 50; j++) {
 		suffix_generator(suffix, oper,Num);
+		key = calculate(suffix, Num, suffix_result);
+		getnormalsuffix(suffix, key, j);
 		for (i = 1; i <= suffix[0].num; i++) {
-			if (suffix[i].flag == -1) break;//****************没用上。。。
-			else if (suffix[i].flag == 0) {
+			//{
+			//	if (suffix[i].flag == -1) break;//****************securrity checkpoint 
+			//	else if (suffix[i].flag == 0) {
 
-				ofn << suffix[i].num << ' ';
-				cout << suffix[i].num << ' ';
-			}//end elseif
-			else if (suffix[i].flag == 2) {
-				ofn << suffix[i].frac[1] << '`' << suffix[i].frac[2] << '/' << suffix[i].frac[3] << ' ';
-				cout << suffix[i].frac[1] << '`' << suffix[i].frac[2] << '/' << suffix[i].frac[3] << ' ';
+			//		ofn << suffix[i].num << ' ';
+			//		cout << suffix[i].num << ' ';
+			//	}//end elseif
+			//	else if (suffix[i].flag == 2) {
+			//		ofn << suffix[i].frac[1] << '`' << suffix[i].frac[2] << '/' << suffix[i].frac[3] << ' ';
+			//		cout << suffix[i].frac[1] << '`' << suffix[i].frac[2] << '/' << suffix[i].frac[3] << ' ';
 
-			}
-			else {
-				ofn << suffix[i].c << ' ';
-				cout << suffix[i].c << ' ';
-			}//end else
+			//	}
+			//	else {
+			//		ofn << suffix[i].c << ' ';
+			//		cout << suffix[i].c << ' ';
+			//	}//end else
+			//}
+			
 
 		}//end for j
 		
-		ofn << j + 1 << "	";
-		key = calculate(suffix,Num, suffix_result);
+		/*ofn << j + 1 << "	";
+		
 		if (key == -10000) {
 			ofn_key << key << endl;
 			cout << j + 1 << "	" << key << endl;
@@ -1042,7 +1139,7 @@ int main()
 				ofn << suffix_result.num << ' ';
 				cout << suffix_result.num << ' ';
 			}
-		}
+		}*/
 		cout << endl;
 		ofn << endl;
 		
