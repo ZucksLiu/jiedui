@@ -7,12 +7,13 @@
 #include <cstdlib>
 #include <ctime>
 
-
+#include <stack>
 #include <stdio.h>
 #include <stdlib.h>
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <vector>
 
 //#include<string.h>
 
@@ -23,25 +24,94 @@
 #define GEN 100
 #define Frac_Num 1
 #define Num 0
+#define ROWSIZE 100
+#define MAX_LEN 20
+
 
 
 using namespace std;
 
-
-
 //definition of Node
 typedef struct node {
 	//the node of string
-	char c;
-	int num;
-	int flag;
-	int frac[4];
+	char c = 0;
+	int num = 0;
+	int flag = -1;
+	int frac[4] = {0,0,0,0};
 
-}Node, NNode[NUMSIZE];
+}Node, NNode[NUMSIZE], *N_ptr;
+
 
 //end definition
 
+int _sup = 20, _inf = 1;
+int _inf_len = 5, _sup_len = 9;
+int _symbol = 1;
+int _row = 50;
+char *_oper = "+-*/";
+string expression;
+string str_key;
+string path_exp = "D://result.txt";
+string path_key = "D://key.txt";
+
+bool N_gen_app = false;
+int File_out = 1;
+int File_app = 0;
+
+
+
+vector<string> expressions;
+vector<string> str_keys;
+NNode suffix;
+NNode* _sufarr[ROWSIZE];
+Node _suffix_result;
+
+
+bool set_range(int inf,int sup) {
+	if (0 <= inf&&inf <= sup&&sup <= INT_MAX) {
+		_inf = inf;
+		_sup = sup;
+		return true;
+	}
+	return false;
+
+}//end set_range
+
+bool set_len(int inf,int sup) {
+	if (inf >= 2 && sup >= inf&&sup <= MAX_LEN) {
+		_inf_len = inf;
+		_sup_len = sup;
+		return true;
+
+	}//end if
+	return false;
+}//end set_len
+
+bool set_mode(int symbol) {
+	if (symbol == 0 || symbol==1 || symbol==2) {
+		_symbol = symbol;
+		return true;
+	}//end if
+	else return false;
+}//end set_mode
+
+bool set_row(int row) {
+	if (row > 0 && row <= ROWSIZE) {
+		_row = row;
+	}//end if
+}//end set_row
+
+bool set_operator(char add,char min,char mul,char div,char power) {
+	
+}
+
+
+void getnormalsuffix(int key, int NUM);
+
 void init_suffix(Node& suffix);
+
+void disp_key(int key);
+void getnormalsuffix(int key, int NUM);
 //考虑是否需要单独初始化其他变量*******
 
 //definition of stack
@@ -97,6 +167,8 @@ bool Nstackempty(Nsqstack s) {
 
  //end Initialization of stack
 
+ //cal of two node/num
+
 int gcd(int a, int b) {
 	int i = 0, j = 0, k = 0;
 	int result = 0;
@@ -116,31 +188,6 @@ int gcd(int a, int b) {
 
 }//end gcd
 
-
-
-int isoperator(char ch) {
-	//judge if a char is operator or not
-	int m = 0;
-	switch (ch) {
-	case '#':
-	case 'q':
-	case 'l'://ln
-	case ')':
-	case 't'://tan
-	case 'a':
-	case '^':
-	case 'c'://cos
-	case 's'://sin
-	case '(':
-	case '+':
-	case '-':
-	case '*':
-	case '/': m = 1; break;
-	default:m = 0;
-
-	}
-	return m;
-}
 
 int cal(int a, int b, char ch) {
 	//function of calculation
@@ -474,54 +521,9 @@ int cal(Node suffix_left, Node suffix_right, Node &suffix_result,char op) {
 
 }//end cal with Node
 
+ //end cal of two node/m
 
-
-void getf(char *&p, char *q) {
-	//capture the number(able to get double)
-	//46 is '.'
-	char *temp = q;
-	int k = 1;
-	if (*p<48 && *p>57) return;
-	while (*p == 46 || *p >= 48 && *p <= 57) {
-		*temp = *p;
-		p++, temp++;
-	}
-
-	*temp = '\0';
-}//end getf
-
-
-
-int preop(char a, char b) {
-	//-1,0,1 means the priority of a is smaller/equal_to/larger than b
-	//-2 means error
-	if (a == '+' || a == '-') {
-		if (b == '*' || b == '/' || b == '(' || b == '^') return -1;
-		else return 1;
-	}
-	if (a == '*' || a == '/') {
-		if (b == '(' || b == '^') return -1;
-		else return 1;
-	}
-	if (a == '(') {
-		if (b == ')') return 0;
-		else if (b == '#') return -2;
-		else return -1;
-	}
-	if (a == ')') {
-		if (b == '(')return -2;
-		else return 1;
-	}
-	if (a == '^') {
-		if (b == '(') return -1;
-		else return 1;
-	}
-	if (a == '#') {
-		if (b == ')') return -2;
-		else if (b == '#') return 0;
-		else return -1;
-	}
-}//end preop
+ //srand_generator
 
 bool srand_generator(int inf,int sup,int div) {
 	//set the srand generator
@@ -547,6 +549,8 @@ int srand_generator(int div) {
 	return beg;
 
 }//end srand_generator
+
+ //end srand_generator
 
 void init_suffix(Node& suffix) {
 	suffix.c = '\0';
@@ -630,28 +634,56 @@ void set_num_suffix(Node& suffix, int inf, int sup, char* oper) {
 
 }//end set_num_suffix
 
+void N_init_suffix(NNode &suffix) {
+	int i = 0;
+	for (i = 0; i < NUMSIZE; i++) {
+		init_suffix(suffix[i]);
+	}
 
 
+}//end N_init_suffix
 
-void suffix_generator(NNode &suffix,char* oper,int symbol) {
+
+void suffix_generator() {
 	//generate the suffix erpression
+
+	//initialization
+	N_init_suffix(suffix);
+
+	int symbol = _symbol;
 
 	int temp = 0,temp1;//temp variable(use for case 3)
 	int i = 0, j = 0, k = 0;// invariable of count
 
+
+	char oper2[10];
+	for (i = 0; i < int(strlen(_oper)); i++) {
+		oper2[i] = _oper[i];
+	}
+	oper2[i] = 0, i = 0;
+	char* oper = oper2;
+
+
 	bool flag = 0;			// flag of generating operator or num
 
-	int sup = 20;// the superior bound of the num
-	int inf = 1; // the inferior bound of the num
+	int sup = _sup;// the superior bound of the num
+	int inf = _inf; // the inferior bound of the num
 
 	int count_num  = 0; //the number of num in the experssion
 	int count_oper = 0; //the number of operator in the experssion
 
-	int inf_len = 5;//the inferior bound of the length of expression
-	int sup_len = 9;//the superior bound of the length of expression
+	int inf_len = _inf_len;//the inferior bound of the length of expression
+	int sup_len = _sup_len;//the superior bound of the length of expression
 	
 	int len_oper = strlen(oper);		 //the length of the operator set
-	int length = random(inf_len,sup_len);//the length of the exp,randomized
+
+	int length;
+	if (inf_len == sup_len) {
+		length = inf_len;
+	}
+	else {
+		length = random(inf_len, sup_len);//the length of the exp,randomized
+	}
 
 	string string1 = oper;
 
@@ -659,12 +691,12 @@ void suffix_generator(NNode &suffix,char* oper,int symbol) {
 
 	if (length % 2 == 0) length++;
 	
-	//initialization
+	
 	suffix[0].flag = 3;    //3 ************* 3 means begin
 	suffix[0].num = length;//store the length
 	//end initialization
-	temp = string1.find('/');
-	if (symbol==0 && temp) {
+	temp = string1.find('/');  
+	if (symbol==0 && temp>0) {//bool 型的狗逼错！！！！！
 		symbol = 3;
 		char oper1[10];
 		for (i = 0, j = 0; i < len_oper; i++) {
@@ -788,16 +820,20 @@ void suffix_generator(NNode &suffix,char* oper,int symbol) {
 
 		while (count_num < (1 + (length - 1) / 2)) {
 			if (srand_generator(10, 20, 15)) {
-				temp = random(inf, int(floor(sqrt(sup))));
-				temp1 = random(inf, int(floor(sqrt(sup))));
-				suffix[i].num = temp1*temp;
-				suffix[i++].flag = 0;
-				suffix[i].num = temp;
-				suffix[i++].flag = 0;
-				suffix[i].c = '/';
-				suffix[i++].flag = 1;
-				count_num += 2;
-				count_oper++;
+				if (count_num <= ((length - 1) / 2 - 1)) {
+					temp = random(inf, int(floor(sqrt(sup))));
+					temp1 = random(inf, int(floor(sqrt(sup))));
+					suffix[i].num = temp1*temp;
+					suffix[i++].flag = 0;
+					suffix[i].num = temp;
+					suffix[i++].flag = 0;
+					suffix[i].c = '/';
+					suffix[i++].flag = 1;
+					count_num += 2;
+					count_oper++;
+
+				}//if no out of range
+				else continue;
 				
 			}//end if
 			else {
@@ -851,27 +887,16 @@ void suffix_generator(NNode &suffix,char* oper,int symbol) {
 
 }//end suffix_generator
 
-void node_out_file(fstream filename, Node suffix) {
-	//f_out a node to the file
-	if (suffix.flag == -1) return;
-	else if (suffix.flag = 0) {
-		filename << suffix.num << ' ';
-	}//end elseif
-	else {
-		filename << suffix.c << ' ';
-	}//end else
-}//end node_out_file
-
-
-
-
-int calculate(NNode suffix,int symbol,Node& suffix_result) {
+int calculate() {
 	//calculate the suffix
 	//symbol decides the type of calculation
 	//未考虑分数，小数，真分数，返回整数
 	//未考虑中间出现负数
 	Nsqstack s;
 	Ninitstack(s);
+	
+	int symbol = _symbol;
+
 	int length = suffix[0].num;//the length of exp
 	int len_num = (length + 1) / 2;
 	int len_oper = (length - 1) / 2;
@@ -882,7 +907,7 @@ int calculate(NNode suffix,int symbol,Node& suffix_result) {
 	}
 	else return -10000;
 
-	Node suffix_left, suffix_right;
+	Node suffix_left, suffix_right,suffix_result;
 	init_suffix(suffix_left);
 	init_suffix(suffix_right);
 	init_suffix(suffix_result);
@@ -918,7 +943,7 @@ int calculate(NNode suffix,int symbol,Node& suffix_result) {
 				else if (result == -10000) return -10000;
 				suffix_result.num = result;
 				suffix_result.flag = 0;
-				Npush(s, suffix_result);
+				Npush(s, _suffix_result);
 				i++;
 			}//end else if
 
@@ -955,7 +980,7 @@ int calculate(NNode suffix,int symbol,Node& suffix_result) {
 
 		}//end while
 
-		Npop(s, suffix_result);
+		Npop(s, _suffix_result);
 		return 1;
 		break;
 		//end case 1
@@ -964,10 +989,243 @@ int calculate(NNode suffix,int symbol,Node& suffix_result) {
 
 		break;
 	}
+	
 
 	return result;
 }//end calculate ,return int*********
 
+
+void fileout() {
+	if (path_exp.empty() || path_key.empty()) {
+		return;
+	}//end if
+	int i;
+	int exp_size = expressions.size();//length of file
+	int keys_size = str_keys.size();
+	ofstream ofn_exp, ofn_key;
+	if (File_app == 0) {
+		ofn_exp.open(path_exp, ios::out);
+		ofn_key.open(path_key, ios::out);
+		for (i = 0; i < exp_size; i++) {
+			ofn_exp << expressions[i] << endl;
+		}//end for ofn_exp
+		for (i = 0; i < keys_size; i++) {
+			ofn_key << str_keys[i] << endl;
+		}//end for ofn_key
+	}//end if not app
+	else if (File_app == 1) {
+		ofn_exp.open(path_exp, ios::app);
+		ofn_key.open(path_key, ios::app);
+		for (i = 0; i < exp_size; i++) {
+			ofn_exp << expressions[i] << endl;
+		}//end for ofn_exp
+		for (i = 0; i < keys_size; i++) {
+			ofn_key << str_key[i] << endl;
+		}//end for ofn_key
+	}//end else if need app
+
+}//end fileout
+
+
+void N_generate() {
+	//N_generate:generate _row exp and key
+	//set into expressions and 
+
+	int key;
+	int count = 0;
+	if (N_gen_app == false) {
+		expressions.clear();
+		str_keys.clear();
+	}//end if
+	
+	while (count<_row) {
+		suffix_generator();
+		key=calculate();
+		if (key != -1 && key != -10000) {
+			getnormalsuffix(key, count);
+			expressions.push_back(expression);
+			disp_key(key);
+			cout << str_key << endl;
+			str_keys.push_back(str_key);
+			count++;
+		}//end if
+		
+	}//end while
+	if (File_out == 1) {
+		fileout();
+	}
+
+
+}//end N_generate
+
+void getexp(string &exps, string &keys) {
+	int key;
+	int temp = 0;
+	do {
+		suffix_generator();
+		key = calculate();
+	} while (key == -1 || key == -10000);
+	
+	getnormalsuffix(key, temp);
+	exps = expression;
+	disp_key(key);
+	keys = str_key;
+
+}//end getexp
+
+
+void getexp_i(int index, string &exps, string &str_key) {
+	int size_exp = expressions.size();
+	int size_keys = str_keys.size();
+	if (index < 0|| index >= size_exp || index >= size_keys) {
+		return;
+	}//end if err
+	exps = expressions[index];
+	str_key = str_keys[index];
+}//end getexp_i
+
+//Initialize _sufarr
+
+void Initialize() {
+	//Initialize the ptr array
+	int i;
+	for (i = 0; i < ROWSIZE; i++) {
+		_sufarr[i] = (NNode *)malloc(sizeof(NNode));
+		N_init_suffix(*(_sufarr[i]));
+	}
+}//end Initialize
+
+//void Reset_Initial() {
+//
+//}
+
+void Clear() {
+	//Clear: delete the space of _sufarr
+	int i;
+	for (i = 0; i < ROWSIZE; i++) {
+		if (_sufarr[i] != NULL) {
+			free(_sufarr[i]);
+		}//end if
+	}//end for
+
+}//end clear
+
+//Clear _sufarr
+
+
+
+
+void output(string Expression, int key, int NUM) {
+	string dist = "D://result.txt";
+	string dist1 = "D://key.txt";
+	fstream ofn(dist, ios::app);
+	fstream ofn_key(dist1, ios::app);
+	ofn << NUM + 1 << ". " << Expression << " = " << endl;
+	ofn_key << NUM + 1 << ". " << key << endl;
+}//end output
+
+string needbracket(string a, char c) {
+	//suffix get char by char 
+	if (c == '+' || c == '-') return a;
+	int len = a.length();
+	if (len < 3) return a;
+	int flag = 0;
+	for (int i = 0; i < len; i++) {
+		if (a[i] == '+' || a[i] == '-') flag = 1;
+		if (a[i] == ')') flag = 0;
+	}
+	if (flag == 1) {
+		string c = "(";
+		c += a;
+		c += ")";
+		return c;
+	}
+	else return a;
+}//end needbracket
+
+
+void getnormalsuffix( int key, int NUM) {
+
+	stack<string> Expression;
+	string a;
+	string b;
+	char lastop = 0;
+	int flag = 0;
+	for (int i = 1; i <= suffix[0].num; i++) {
+		// if is a num/frac then change to string else change to mid
+		if (suffix[i].flag == -1) break;
+		else if (suffix[i].flag == 0) {
+			Expression.push(to_string(suffix[i].num));
+			flag++;
+			//cout << suffix[i].num << ' ';
+		}//end elseif
+		else if (suffix[i].flag == 2) {
+			//cout << suffix[i].frac[1] << '`' << suffix[i].frac[2] << '/' << suffix[i].frac[3] << ' ';
+			string c;
+			if (suffix[i].frac[1] != 0) {
+				c += to_string(suffix[i].frac[1]);
+				c += '`';
+			}//end if
+			c += to_string(suffix[i].frac[2]);
+			c += '/';
+			c += to_string(suffix[i].frac[3]);
+			Expression.push(c);
+			flag++;
+		}//end elseif
+		else {
+			a = Expression.top();
+			Expression.pop();
+			b = Expression.top();
+			Expression.pop();
+
+			if (flag == 0) {
+				a = needbracket(a, suffix[i].c);
+				b = needbracket(b, suffix[i].c);
+			}//end if
+			else {
+				if (flag == 1) {
+					b = needbracket(b, suffix[i].c);
+				}//end else
+			}//end else	
+			b += ' ';
+			b += suffix[i].c;
+			b += ' ';
+			b += a;
+			Expression.push(b);
+			lastop = suffix[i].c;
+			//cout << suffix[i].c << ' ';
+			flag = 0;
+		}//end else
+
+	}//end for
+	
+	expression=Expression.top();
+	//output(a, key, NUM);
+	cout << endl << expression << "    " << key << endl;
+
+}//end getnormalsuffix
+
+void disp_key(int key) {
+
+	if (key == -1 || key == -10000) {
+		return;
+	}
+	str_key.clear();
+	if (_suffix_result.flag == 0) {
+		str_key.append(to_string(_suffix_result.num));
+	}//end if
+	else if (_suffix_result.flag == 2) {
+		str_key.append(to_string(_suffix_result.frac[1]));
+		str_key.append("~");
+		str_key.append(to_string(_suffix_result.frac[2]));
+		str_key.append("/");
+		str_key.append(to_string(_suffix_result.frac[3]));
+
+	}//end eles if
+	else if (_suffix_result.flag==3) {
+		str_key.append(to_string(_suffix_result.num));
+	}//end else if double
+} //end disp_key
 
 
 int main()
@@ -982,69 +1240,91 @@ int main()
 	Ngettop(s, suffix1);
 	cout << suffix1.frac[1] << "`" << suffix1.frac[2] <<"/" << suffix1.frac[3] << endl;
 	cout << suffixq.frac[1] << "`" << suffixq.frac[2] <<"/" << suffixq.frac[3] << endl;*/
+	//testing stack
 	
 	
 	
 	
-	NNode suffix;
 	Node suffix_result;
 	int i = 0;
-	int key = 0;//key is the result of suffix
+	int key = 0;//key is the result of suffix ******* change to node
 	string dist = "C:/Users/38084/Documents/Visual Studio 2015/Projects/jiedui/jiedui/result.txt";
 	string dist1 = "C:/Users/38084/Documents/Visual Studio 2015/Projects/jiedui/jiedui/key.txt";
 	
+
+
 	srand((unsigned)time(NULL));
-	char* oper = "+-*/";
+	
 	init_suffix(suffix_result);
 	for (i = 0; i < NUMSIZE; i++) {
 		init_suffix(suffix[i]);
 	}//end for i
+
+	N_generate();
+	string a, b;
+	getexp_i(49, a, b);
+	cout << a << '	' << b << endl;
+	getexp(a, b);
+	cout << a << '	' << b << endl;
+	
+
 	fstream ofn(dist,ios::out);
-	fstream ofn_key(dist1, ios::out);
+	fstream ofn_key(dist1, ios::out);// change to output and change api with path 
 
-	for (int j = 0; j < 1000; j++) {
-		suffix_generator(suffix, oper,Num);
-		for (i = 1; i <= suffix[0].num; i++) {
-			if (suffix[i].flag == -1) break;//****************没用上。。。
-			else if (suffix[i].flag == 0) {
+	for (int j = 0; j < 50; j++) {
+		suffix_generator();
+		key = calculate();
 
-				ofn << suffix[i].num << ' ';
-				cout << suffix[i].num << ' ';
-			}//end elseif
-			else if (suffix[i].flag == 2) {
-				ofn << suffix[i].frac[1] << '`' << suffix[i].frac[2] << '/' << suffix[i].frac[3] << ' ';
-				cout << suffix[i].frac[1] << '`' << suffix[i].frac[2] << '/' << suffix[i].frac[3] << ' ';
+		getnormalsuffix( key, j);
 
-			}
-			else {
-				ofn << suffix[i].c << ' ';
-				cout << suffix[i].c << ' ';
-			}//end else
+		disp_key(key);
+		cout << str_key << endl;
+		str_key.clear();
+		//for (i = 1; i <= suffix[0].num; i++) {
+		//	{
+		//		if (suffix[i].flag == -1) break;//****************securrity checkpoint 
+		//		else if (suffix[i].flag == 0) {
 
-		}//end for j
+		//			ofn << suffix[i].num << ' ';
+		//			cout << suffix[i].num << ' ';
+		//		}//end elseif
+		//		else if (suffix[i].flag == 2) {
+		//			ofn << suffix[i].frac[1] << '`' << suffix[i].frac[2] << '/' << suffix[i].frac[3] << ' ';
+		//			cout << suffix[i].frac[1] << '`' << suffix[i].frac[2] << '/' << suffix[i].frac[3] << ' ';
+
+		//		}
+		//		else {
+		//			ofn << suffix[i].c << ' ';
+		//			cout << suffix[i].c << ' ';
+		//		}//end else
+		//	}
+		//	
+
+		//}//end for j
 		
-		ofn << j + 1 << "	";
-		key = calculate(suffix,Num, suffix_result);
+		/*ofn << j + 1 << "	"<<"answer:	";
+		cout << j + 1 << "	" << "answer:	";
+		
 		if (key == -10000) {
 			ofn_key << key << endl;
-			cout << j + 1 << "	" << key << endl;
+			cout << key << endl;
 		}
 		else if (key == -1) {
 			ofn_key << key << endl;
-			cout << j + 1 << "	" << key << endl;
+			cout <<  key << endl;
 		}
 		else {
-			if (suffix_result.flag == 2) {
-				ofn << suffix_result.frac[1] << '`' << suffix_result.frac[2] << '/' << suffix_result.frac[3] << ' ';
-				cout << suffix_result.frac[1] << '`' << suffix_result.frac[2] << '/' << suffix_result.frac[3] << ' ';
+			if (_suffix_result.flag == 2) {
+				ofn << _suffix_result.frac[1] << '`' << _suffix_result.frac[2] << '/' << _suffix_result.frac[3] << ' ';
+				cout << _suffix_result.frac[1] << '`' << _suffix_result.frac[2] << '/' << _suffix_result.frac[3] << ' ';
 			}
-			else if (suffix_result.flag == 0) {
-				ofn << suffix_result.num << ' ';
-				cout << suffix_result.num << ' ';
+			else if (_suffix_result.flag == 0) {
+				ofn << _suffix_result.num << ' ';
+				cout << _suffix_result.num << ' ';
 			}
 		}
 		cout << endl;
-		ofn << endl;
+		ofn << endl;*/
 		
 
 	}//end for i
